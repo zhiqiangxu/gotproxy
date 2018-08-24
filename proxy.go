@@ -22,8 +22,8 @@ type Proxy struct {
 
 // NewProxy returns a Proxy instance
 func NewProxy(redirector Redirector) *Proxy {
-	ctx, cancelCtx := context.WithCancel(context.Background())
-	return &Proxy{redirector: redirector, ctx: ctx, cancelFunc: cancelCtx}
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	return &Proxy{redirector: redirector, ctx: ctx, cancelFunc: cancelFunc}
 }
 
 // ListenAndServe starts listening

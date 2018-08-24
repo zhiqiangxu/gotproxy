@@ -29,6 +29,7 @@ func (m *Master) Start(listeningPort uint16) {
 	qrpc.GoFunc(&m.wg, func() {
 		proxy.ListenAndServe(listeningPort)
 	})
+	m.proxy = proxy
 
 	time.Sleep(time.Second)
 
@@ -47,6 +48,7 @@ func (m *Master) Stop() {
 		log.Panicf("redirector stop failed: %s", err)
 	}
 	log.Println("redirector exit")
+	// TODO why hang when nil pointer deref ?
 	m.proxy.Shutdown()
 
 	m.wg.Wait()
