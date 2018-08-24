@@ -1,0 +1,3 @@
+[submodule "kext/darwin_kext"]
+    path = kext/darwin_kext
+	url = git@github.com:zhiqiangxu/darwin_kext.git
