@@ -17,5 +17,5 @@ type Redirector interface {
 	Start(listeningPort uint16) error
 	Stop() error
 
-	GetOriginalDst(net.Conn) string
+	GetOriginalDst(net.Conn) (string, uint16, error)
 }

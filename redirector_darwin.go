@@ -1,6 +1,8 @@
 package gotproxy
 
 import (
+	"encoding/binary"
+	"io"
 	"log"
 	"net"
 
@@ -46,6 +48,26 @@ func (dr *defaultRedirector) Stop() error {
 	return ErrRedirectStopFail
 }
 
-func (dr *defaultRedirector) GetOriginalDst(net.Conn) string {
-	return ""
+func (dr *defaultRedirector) GetOriginalDst(rw net.Conn) (string, uint16, error) {
+
+	bytes := make([]byte, 1)
+	_, err := io.ReadFull(rw, bytes)
+	if err != nil {
+		return "", 0, err
+	}
+	length := uint8(bytes[0])
+	bytes = make([]byte, length)
+	_, err = io.ReadFull(rw, bytes)
+	if err != nil {
+		return "", 0, err
+	}
+	dst := string(bytes)
+	bytes = make([]byte, 2)
+	_, err = io.ReadFull(rw, bytes)
+	if err != nil {
+		return "", 0, err
+	}
+	port := binary.BigEndian.Uint16(bytes)
+
+	return dst, port, nil
 }

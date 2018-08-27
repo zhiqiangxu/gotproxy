@@ -3,6 +3,7 @@ package gotproxy
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -13,6 +14,7 @@ import (
 
 // Proxy deals with redirected traffic
 type Proxy struct {
+	inconns    sync.Map
 	redirector Redirector
 	ln         net.Listener
 	wg         sync.WaitGroup
@@ -60,20 +62,56 @@ func (p *Proxy) ListenAndServe(listeningPort uint16) error {
 }
 
 func (p *Proxy) serve(rw net.Conn) {
-	defer rw.Close()
 
-	dst := p.redirector.GetOriginalDst(rw)
-	p.forward(rw, dst)
+	p.inconns.Store(rw, struct{}{})
+
+	defer func() {
+		rw.Close()
+		p.inconns.Delete(rw)
+		if err := recover(); err != nil {
+			log.Println("panic", err)
+		}
+	}()
+
+	dst, port, err := p.redirector.GetOriginalDst(rw)
+	if err != nil {
+		log.Println("GetOriginalDst err", err)
+		return
+	}
+
+	targetAddr := fmt.Sprintf("%s:%d", dst, port)
+	p.forward(rw, targetAddr)
 }
 
-func (p *Proxy) forward(rw net.Conn, dst string) {
+func (p *Proxy) forward(rw net.Conn, targetAddr string) {
 	log.Println("new conn")
+	conn, err := net.Dial("tcp", targetAddr)
+	if err != nil {
+		log.Println("Dial err", err)
+		return
+	}
+
+	var wg sync.WaitGroup
+
+	qrpc.GoFunc(&wg, func() {
+		io.Copy(conn, rw)
+	})
+	qrpc.GoFunc(&wg, func() {
+		io.Copy(rw, conn)
+	})
+
+	wg.Wait()
 }
 
 // Shutdown stops the Proxy
 func (p *Proxy) Shutdown() error {
 	p.cancelFunc()
 	p.ln.Close()
+
+	p.inconns.Range(func(k, v interface{}) bool {
+		k.(net.Conn).Close()
+		return true
+	})
 	p.wg.Wait()
 	return nil
 }
