@@ -43,7 +43,12 @@ bool StartRedirect(int sock, uint16_t port) {
 
 bool StopClose(int sock) {
 
+    printf("setsockopt TPROXY_OFF, fd=%d\n", sock);
     if (setsockopt(sock, SYSPROTO_CONTROL, TPROXY_OFF, NULL, 0) == -1) return false;
+    printf("setsockopt TPROXY_OFF ok\n");
 
-    return close(sock) == 0;
+    printf("closing control socket\n");
+    int ret = close(sock);
+    printf("closed control, close ret %d\n", ret);
+    return ret == 0;
 }
