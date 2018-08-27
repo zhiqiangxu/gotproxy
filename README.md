@@ -10,3 +10,8 @@ On mach osx, it works this way:
 
 
 So that we can control global outbound traffic from a single point!
+
+
+To run it:
+
+````go run app/tproxy.go````
